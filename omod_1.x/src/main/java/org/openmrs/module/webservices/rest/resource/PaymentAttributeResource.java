@@ -36,6 +36,7 @@ import org.openmrs.module.openhmis.cashier.api.model.PaymentAttribute;
 import org.openmrs.module.openhmis.cashier.api.model.PaymentModeAttributeType;
 import org.openmrs.module.openhmis.commons.api.entity.IEntityDataService;
 import org.openmrs.module.webservices.rest.web.RestConstants;
+import org.openmrs.module.webservices.rest.web.annotation.PropertyGetter;
 import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
@@ -61,74 +62,88 @@ public class PaymentAttributeResource extends BaseRestAttributeDataResource<Paym
 		return description;
 	}
 
+	@PropertyGetter("value")
+	public Object getValue(PaymentAttribute attribute) {
+		return super.baseGetPropertyValue(attribute);
+	}
+
+	@PropertySetter("attributeType")
+	public void setAttributeType(PaymentAttribute instance, PaymentModeAttributeType attributeType) {
+		super.baseSetAttributeType(instance, attributeType);
+	}
+
 	@Override
 	public String getDisplayString(PaymentAttribute instance) {
 		String instanceFormat = instance.getAttributeType().getFormat();
 		String names = null;
-		int instanceId = NumberUtils.toInt(instance.getValue(), -1);
 		if (StringUtils.isNotEmpty(instanceFormat)) {
-			if (instanceId > -1) {
-				if (instanceFormat.contains("User")) {
-					UserService userService = Context.getUserService();
-					User user = userService.getUser(instanceId);
-					if (user != null) {
-						names = (user.getDisplayString());
+			if (NumberUtils.isNumber(instance.getValue())) {
+				int instanceId = NumberUtils.toInt(instance.getValue(), -1);
+				if (instanceId > -1) {
+					if (instanceFormat.contains("User")) {
+						UserService userService = Context.getUserService();
+						User user = userService.getUser(instanceId);
+						if (user != null) {
+							names = (user.getDisplayString());
+						} else {
+							LOG.error("The user could not be found");
+						}
+					} else if (instanceFormat.contains("Location")) {
+						LocationService locationService = Context.getLocationService();
+						Location location = locationService.getLocation(instanceId);
+						if (location != null) {
+							names = location.getDisplayString();
+						} else {
+							LOG.error("The location could not be found");
+						}
+					} else if (instanceFormat.contains("Provider")) {
+						ProviderService providerService = Context.getProviderService();
+						Provider provider = providerService.getProvider(instanceId);
+						if (provider != null) {
+							names = provider.getName();
+						} else {
+							LOG.error("The Provider could not be found");
+						}
+					} else if (instanceFormat.contains("Concept")) {
+						ConceptService conceptService = Context.getConceptService();
+						Concept concept = conceptService.getConcept(instanceId);
+						if (concept != null) {
+							names = concept.getDisplayString();
+						} else {
+							LOG.error("The Concept could not be found");
+						}
+					} else if (instanceFormat.contains("Patient")) {
+						PatientService patientService = Context.getPatientService();
+						Patient patient = patientService.getPatient(instanceId);
+						if (patient != null) {
+							names = patient.getPersonName().getFullName();
+						} else {
+							LOG.error("The Patient could not be found");
+						}
+					} else if (instanceFormat.contains("Encounter")) {
+						EncounterService encounterService = Context.getEncounterService();
+						Encounter encounter = encounterService.getEncounter(instanceId);
+						if (encounter != null) {
+							names = encounter.toString();
+						} else {
+							LOG.error("The Encounter could not be found");
+						}
+					} else if (instanceFormat.contains("ProgramWorkflow")) {
+						ProgramWorkflowService programWorkflowService = Context.getProgramWorkflowService();
+						Program program = programWorkflowService.getProgram(instanceId);
+						if (program != null) {
+							names = program.getName();
+						} else {
+							LOG.error("The Program could not be found");
+						}
 					} else {
-						LOG.error("The user could not be found");
-					}
-				} else if (instanceFormat.contains("Location")) {
-					LocationService locationService = Context.getLocationService();
-					Location location = locationService.getLocation(instanceId);
-					if (location != null) {
-						names = location.getDisplayString();
-					} else {
-						LOG.error("The location could not be found");
-					}
-				} else if (instanceFormat.contains("Provider")) {
-					ProviderService providerService = Context.getProviderService();
-					Provider provider = providerService.getProvider(instanceId);
-					if (provider != null) {
-						names = provider.getName();
-					} else {
-						LOG.error("The Provider could not be found");
-					}
-				} else if (instanceFormat.contains("Concept")) {
-					ConceptService conceptService = Context.getConceptService();
-					Concept concept = conceptService.getConcept(instanceId);
-					if (concept != null) {
-						names = concept.getDisplayString();
-					} else {
-						LOG.error("The Concept could not be found");
-					}
-				} else if (instanceFormat.contains("Patient")) {
-					PatientService patientService = Context.getPatientService();
-					Patient patient = patientService.getPatient(instanceId);
-					if (patient != null) {
-						names = patient.getPersonName().getFullName();
-					} else {
-						LOG.error("The Patient could not be found");
-					}
-				} else if (instanceFormat.contains("Encounter")) {
-					EncounterService encounterService = Context.getEncounterService();
-					Encounter encounter = encounterService.getEncounter(instanceId);
-					if (encounter != null) {
-						names = encounter.toString();
-					} else {
-						LOG.error("The Encounter could not be found");
-					}
-				} else if (instanceFormat.contains("ProgramWorkflow")) {
-					ProgramWorkflowService programWorkflowService = Context.getProgramWorkflowService();
-					Program program = programWorkflowService.getProgram(instanceId);
-					if (program != null) {
-						names = program.getName();
-					} else {
-						LOG.error("The Program could not be found");
+						names = instance.getValue();
 					}
 				} else {
-					names = instance.getValue();
+					LOG.error("The instance cannot be null or empty");
 				}
 			} else {
-				LOG.error("The instance cannot be null or empty");
+				names = instance.getValue();
 			}
 		} else {
 			LOG.error("The Instance Format should not be empty");
@@ -146,11 +161,6 @@ public class PaymentAttributeResource extends BaseRestAttributeDataResource<Paym
 		} else {
 			return instance.getValue();
 		}
-	}
-
-	@PropertySetter("attributeType")
-	public void setAttributeType(PaymentAttribute instance, PaymentModeAttributeType attributeType) {
-		instance.setAttributeType(attributeType);
 	}
 
 	@Override
